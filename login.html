@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Login y Registro | Raíz Edomex</title>
+<style>
+:root {
+  --sage-verde: #4A7C59;
+  --sage-oscuro: #2D5C3E;
+  --sage-palido: #EAF3EC;
+  --earth-gold: #8B6914;
+  --forest-dark: #1C2417;
+  --cream: #FDFCF8;
+}
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: var(--cream);
+  color: var(--forest-dark);
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+.contenedor {
+  background: #f9f4f4;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(28,36,23,0.08);
+  overflow: hidden;
+}
+.tabs { display: flex; background: var(--sage-palido); }
+.tab-btn {
+  flex: 1; padding: 18px 0; border: none;
+  background: transparent; font-size: 16px; font-weight: bold;
+  color: var(--forest-dark); cursor: pointer; transition: all 0.3s;
+}
+.tab-btn.activa {
+  background: #fff; color: var(--sage-verde);
+  border-bottom: 3px solid var(--sage-verde);
+}
+.form-section { padding: 30px; display: none; }
+.form-section.activa { display: block; }
+h2 { margin: 0 0 20px; font-weight: 600; color: var(--sage-oscuro); text-align: center; }
+form { display: flex; flex-direction: column; }
+input, select {
+  width: 100%; padding: 12px 15px; margin-bottom: 15px;
+  border: 1px solid var(--sage-palido); border-radius: 6px;
+  box-sizing: border-box; font-size: 14px; background: var(--cream);
+}
+button[type="submit"] {
+  width: 100%; padding: 14px; color: white; border: none;
+  border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer;
+}
+.btn-login { background: var(--sage-verde); }
+.btn-registro { background: var(--earth-gold); }
+.msg-error { color: #c62828; text-align: center; margin-top: 10px; font-size: 14px; min-height: 20px; }
+</style>
+</head>
+<body>
+
+<div class="contenedor">
+  <center>
+  <a href="#" class="nav-logo">
+  <div class="nav-logo-mark">
+    <img src="img/lu'um pochtlan.png" alt="Logo Lu'um Pochtlan" style="width: 150px; height: 150px; object-fit: cover; border-radius: 10px; align-items: center;">
+  </div>
+   </a>
+  </center>   
+  <br>
+  <div class="tabs">
+    <button class="tab-btn activa" onclick="mostrarSeccion('login')">Iniciar Sesión</button>
+    <button class="tab-btn" onclick="mostrarSeccion('registro')">Registrarse</button>
+  </div>
+  
+  <div id="seccion-login" class="form-section activa">
+    <h2>Bienvenido de nuevo</h2>
+    <form id="formLogin">
+      <input type="email" name="email" placeholder="Correo" required>
+      <input type="password" name="password" placeholder="Contraseña" required>
+      <button type="submit" class="btn-login">Ingresar</button>
+    </form>
+   <br> 
+   <a href="index.html"><button type="submit" class="btn-login">regresar</button></a> 
+    <p class="msg-error" id="error-login"></p>
+  </div>
+
+  <div id="seccion-registro" class="form-section">
+    <h2>Crea tu cuenta</h2>
+    <form id="formRegistro">
+      <select name="rol">
+        <option value="cliente">Cliente</option>
+        <option value="comerciante">Comerciante</option>
+      </select>
+      <input type="text" name="nombre" placeholder="Nombre" required>
+      <input type="text" name="telefono" placeholder="Teléfono" required>
+      <input type="email" name="email" placeholder="Correo" required>
+      <input type="password" name="password" placeholder="Contraseña" required>
+      <button type="submit" class="btn-registro">Registrar</button>
+    </form>
+    <p class="msg-error" id="error-registro"></p>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:3000';
+
+  function mostrarSeccion(seccion) {
+    document.getElementById('seccion-login').classList.remove('activa');
+    document.getElementById('seccion-registro').classList.remove('activa');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activa'));
+    if (seccion === 'login') {
+      document.getElementById('seccion-login').classList.add('activa');
+      document.querySelectorAll('.tab-btn')[0].classList.add('activa');
+    } else {
+      document.getElementById('seccion-registro').classList.add('activa');
+      document.querySelectorAll('.tab-btn')[1].classList.add('activa');
+    }
+  }
+
+  document.getElementById('formLogin').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const errorEl = document.getElementById('error-login');
+    errorEl.textContent = '';
+    const formData = new URLSearchParams(new FormData(this));
+    try {
+      const res = await fetch(`${API}/api/login`, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('usuario', JSON.stringify({ id: data.id, nombre: data.nombre, rol: data.rol }));
+        if (data.rol === 'cliente') window.location.href = 'cliente.html';
+        else if (data.rol === 'comerciante') window.location.href = 'proveedor.html';
+        else errorEl.textContent = 'Rol no reconocido.';
+      } else {
+        errorEl.textContent = data.mensaje || 'Credenciales incorrectas.';
+      }
+    } catch {
+      errorEl.textContent = 'Error de conexión con el servidor.';
+    }
+  });
+
+  document.getElementById('formRegistro').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const errorEl = document.getElementById('error-registro');
+    errorEl.textContent = '';
+    const formData = new URLSearchParams(new FormData(this));
+    try {
+      const res = await fetch(`${API}/api/registro`, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok) {
+        alert('¡Registro exitoso! Ahora inicia sesión.');
+        this.reset();
+        mostrarSeccion('login');
+      } else {
+        errorEl.textContent = data.mensaje || 'Error al registrar.';
+      }
+    } catch {
+      errorEl.textContent = 'Error de conexión con el servidor.';
+    }
+  });
+</script>
+</body>
+</html>

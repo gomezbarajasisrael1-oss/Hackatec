@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raíz Edomex | Portal del Cliente</title>
+    <style>
+        :root {
+            --sage: #4A7C59; --sage-dark: #2D5C3E; --sage-pale: #EAF3EC;
+            --cream: #FDFCF8; --text-dark: #1C2417; --text-muted: #7A7D70;
+            --border: rgba(74,124,89,0.15); --radius: 12px;
+        }
+        * { box-sizing: border-box; }
+        body { background: var(--cream); font-family: 'Segoe UI', sans-serif; color: var(--text-dark); margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: auto; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        h1 { margin: 0; }
+        .bienvenida { color: var(--text-muted); margin-bottom: 20px; font-size: 14px; }
+        .btn-logout { background: #2D5C3E; color: white; border: 1px solid #2D5C3E; padding: 8px 24px; border-radius: 6px; cursor: pointer; font-size: 15px; color: #d9d9d9;}
+        .btn-logout:hover { background: #a8adaa; color: white; }
+        .search-input { width: 100%; max-width: 520px; padding: 13px 15px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 20px; font-size: 14px; display: block; }
+        .main-layout { display: grid; grid-template-columns: 1.5fr 1fr; gap: 25px; align-items: start; }
+        .card { background: white; padding: 25px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px; }
+        .card h3 { margin-top: 0; color: var(--sage-dark); }
+
+        /* Catálogo */
+        .product-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .product-item:last-child { border-bottom: none; }
+        .product-info strong { display: block; margin-bottom: 2px; }
+        .product-info small { color: var(--text-muted); font-size: 12px; }
+        .btn-agregar { background: var(--sage-pale); color: var(--sage-dark); border: 1px solid var(--border); padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; transition: background 0.2s; }
+        .btn-agregar:hover { background: #c3dfc9; }
+        .btn-agregar:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Carrito */
+        #cart-list { list-style: none; padding: 0; margin: 0 0 12px 0; min-height: 50px; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+        .cart-item:last-child { border-bottom: none; }
+        .btn-quitar { background: none; border: none; color: #c62828; cursor: pointer; font-size: 15px; padding: 0 4px; }
+        .total-line { font-weight: bold; color: var(--sage-dark); text-align: right; font-size: 16px; margin: 8px 0 16px; }
+        .btn-order { background: var(--sage); color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: bold; transition: background 0.2s; }
+        .btn-order:hover { background: var(--sage-dark); }
+        .btn-order:disabled { background: #b0b0b0; cursor: not-allowed; }
+        .notif-ok { background: #e8f5e9; border-left: 4px solid var(--sage); padding: 14px; border-radius: 8px; margin-top: 14px; font-size: 14px; display: none; line-height: 1.6; }
+        .vacio { color: var(--text-muted); font-size: 14px; font-style: italic; }
+        hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+        /* Mis Pedidos */
+        #mis-pedidos-section { margin-bottom: 20px; }
+        #mis-pedidos-section .card { padding: 16px; }
+        .pedido-row { padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .pedido-row:last-child { border-bottom: none; }
+        .pedido-row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; font-size: 13px; }
+        .chip { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 600; margin-bottom: 0; vertical-align: middle; }
+        .razon-inline { font-size: 12px; font-style: italic; vertical-align: middle; margin-left: 6px; }
+        .razon-motivo { font-size: 12px; color: #721c24; background: #fff5f5; border-left: 3px solid #c62828; padding: 5px 9px; border-radius: 4px; margin-top: 6px; font-style: italic; line-height: 1.4; }
+        .chip-espera     { background: #fff3cd; color: #856404; }
+        .chip-confirmado { background: #d4edda; color: #155724; }
+        .chip-cancelado  { background: #f8d7da; color: #721c24; }
+        .chip-proceso    { background: #d1ecf1; color: #0c5460; }
+
+        /* Pago dentro de Mis Pedidos */
+        .pago-box { background: var(--sage-pale); border-radius: 8px; padding: 16px; margin-top: 10px; }
+        .pago-box p { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: var(--sage-dark); }
+        .pago-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 14px; margin-bottom: 10px; background: white; }
+        .pago-info-box { background: white; border-radius: 6px; padding: 12px; font-size: 13px; line-height: 1.7; margin-bottom: 10px; }
+        .pago-input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 14px; margin-bottom: 8px; background: white; }
+        .pago-row-2 { display: flex; gap: 8px; }
+        .razon-box { display: none; }
+
+        /* Notificaciones compactas */
+        #notif-section { margin-bottom: 16px; display: none; }
+        .notif-strip { border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; }
+        .notif-strip:last-child { margin-bottom: 0; }
+        .notif-strip-ok  { background: #e8f5e9; border-left: 4px solid #2e7d32; color: #1b5e20; }
+        .notif-strip-err { background: #fff0f0; border-left: 4px solid #c62828; color: #721c24; }
+        .notif-strip span { flex: 1; line-height: 1.4; }
+        .notif-pagar { background: #2e7d32; color: white; border: none; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .notif-pagar:hover { background: #1b5e20; }
+
+        /* Toast */
+        .toast { position: fixed; top: 24px; right: 24px; padding: 16px 20px; border-radius: 10px; color: white; font-size: 14px; font-weight: 600; max-width: 340px; z-index: 9999; line-height: 1.5; box-shadow: 0 6px 24px rgba(0,0,0,0.18); animation: toastIn 0.4s ease; cursor: pointer; }
+        .toast-ok  { background: #2e7d32; }
+        .toast-err { background: #c62828; }
+        @keyframes toastIn  { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes toastOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-bar">
+        <h1>🌱 LU’UM POCHTLAN | cliente</h1>
+        <button class="btn-logout" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+    <p class="bienvenida" id="bienvenida"></p>
+
+    <input type="text" id="search" class="search-input" oninput="filtrarProductos()" placeholder="Buscar productos...">
+
+    <div class="main-layout">
+        <div class="card">
+            <h3>Catálogo de Productos</h3>
+            <div id="lista-productos"><p class="vacio">Cargando productos...</p></div>
+        </div>
+
+        <div>
+            <div class="card">
+                <h3>🛒 Mi Pedido</h3>
+                <ul id="cart-list"><li class="vacio">El carrito está vacío.</li></ul>
+                <div class="total-line" id="total-line" style="display:none">
+                    Total: $<span id="total-monto">0.00</span> MXN
+                </div>
+                <hr>
+                <p style="font-size:13px;color:var(--text-muted);margin:0 0 12px">
+                    El proveedor confirmará tu pedido antes del pago.
+                </p>
+                <button class="btn-order" id="btn-confirmar" onclick="confirmarPedido()" disabled>
+                    Enviar Pedido
+                </button>
+                <div class="notif-ok" id="notif-ok"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICACIONES COMPACTAS -->
+    <div id="notif-section">
+        <div id="lista-notif"></div>
+    </div>
+
+    <div id="mis-pedidos-section" style="display:none">
+        <div class="card">
+            <h3>📋 Mis Pedidos</h3>
+            <div id="lista-mis-pedidos"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:3000';
+
+    const usuarioGuardado = JSON.parse(localStorage.getItem('usuario') || '{}');
+    if (!usuarioGuardado.id) {
+        document.body.innerHTML = `
+            <div style="display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:sans-serif;flex-direction:column;gap:16px">
+                <p style="font-size:16px;color:#555">Necesitas iniciar sesión para ver esta página.</p>
+                <a href="login.html" style="background:#4A7C59;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold">Ir al Login</a>
+            </div>`;
+    } else {
+        document.getElementById('bienvenida').textContent = `Hola, ${usuarioGuardado.nombre} 👋`;
+        cargarProductos();
+        cargarMisPedidos();
+        setInterval(cargarMisPedidos, 15000);
+    }
+
+    function cerrarSesion() {
+        localStorage.removeItem('usuario');
+        window.location.href = 'login.html';
+    }
+
+    let todosLosProductos = [];
+    let carrito = [];
+
+    // ── CATÁLOGO ─────────────────────────────────────────────
+    async function cargarProductos() {
+        try {
+            const res = await fetch(`${API}/api/productos`);
+            todosLosProductos = await res.json();
+            renderizarProductos(todosLosProductos);
+        } catch {
+            document.getElementById('lista-productos').innerHTML = '<p style="color:red">Error al cargar productos.</p>';
+        }
+    }
+
+    function renderizarProductos(lista) {
+        const el = document.getElementById('lista-productos');
+        if (!lista.length) { el.innerHTML = '<p class="vacio">No hay productos disponibles.</p>'; return; }
+        el.innerHTML = lista.map(p => `
+            <div class="product-item">
+                <div class="product-info">
+                    <strong>${p.nombre}</strong>
+                    <small>${p.categoria || ''} &nbsp;·&nbsp; $${Number(p.precio).toFixed(2)} &nbsp;·&nbsp; Stock: ${p.stock}</small>
+                </div>
+                <button class="btn-agregar"
+                    onclick="agregarAlCarrito(${p.id_producto}, '${p.nombre.replace(/'/g,"\\'")}', ${p.precio})"
+                    ${p.stock === 0 ? 'disabled' : ''}>
+                    ${p.stock === 0 ? 'Sin stock' : '+ Agregar'}
+                </button>
+            </div>`).join('');
+    }
+
+    function filtrarProductos() {
+        const q = document.getElementById('search').value.toLowerCase();
+        renderizarProductos(todosLosProductos.filter(p =>
+            p.nombre.toLowerCase().includes(q) ||
+            (p.categoria && p.categoria.toLowerCase().includes(q))
+        ));
+    }
+
+    // ── CARRITO ──────────────────────────────────────────────
+    function agregarAlCarrito(id_producto, nombre, precio) {
+        const ex = carrito.find(i => i.id_producto === id_producto);
+        if (ex) { ex.cantidad++; } else {
+            carrito.push({ id_producto, nombre, precio: Number(precio), cantidad: 1 });
+        }
+        renderizarCarrito();
+    }
+
+    function quitarDelCarrito(id_producto) {
+        const idx = carrito.findIndex(i => i.id_producto === id_producto);
+        if (idx === -1) return;
+        carrito[idx].cantidad > 1 ? carrito[idx].cantidad-- : carrito.splice(idx, 1);
+        renderizarCarrito();
+    }
+
+    function renderizarCarrito() {
+        const lista = document.getElementById('cart-list');
+        const totalLine = document.getElementById('total-line');
+        const btn = document.getElementById('btn-confirmar');
+        if (!carrito.length) {
+            lista.innerHTML = '<li class="vacio">El carrito está vacío.</li>';
+            totalLine.style.display = 'none';
+            btn.disabled = true;
+            return;
+        }
+        lista.innerHTML = carrito.map(i => `
+            <li class="cart-item">
+                <span>${i.nombre} <b>x${i.cantidad}</b></span>
+                <span>$${(i.precio * i.cantidad).toFixed(2)}
+                    <button class="btn-quitar" onclick="quitarDelCarrito(${i.id_producto})" title="Quitar">✕</button>
+                </span>
+            </li>`).join('');
+        const total = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+        document.getElementById('total-monto').textContent = total.toFixed(2);
+        totalLine.style.display = 'block';
+        btn.disabled = false;
+    }
+
+    // ── ENVIAR PEDIDO ────────────────────────────────────────
+    async function confirmarPedido() {
+        if (!carrito.length) return;
+        const btn = document.getElementById('btn-confirmar');
+        btn.disabled = true;
+        btn.textContent = 'Enviando pedido...';
+        try {
+            const res = await fetch(`${API}/api/pedidos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id_cliente: usuarioGuardado.id, items: carrito })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                const notif = document.getElementById('notif-ok');
+                notif.innerHTML = `✅ <b>Pedido #${data.id_pedido} enviado.</b><br>Espera a que el proveedor confirme tu pedido para proceder al pago.`;
+                notif.style.display = 'block';
+                carrito = [];
+                renderizarCarrito();
+                setTimeout(() => notif.style.display = 'none', 8000);
+                await cargarMisPedidos();
+            } else {
+                alert('Error: ' + (data.error || data.mensaje));
+            }
+        } catch {
+            alert('Error de conexión con el servidor.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Enviar Pedido';
+        }
+    }
+
+    // ── TOAST ────────────────────────────────────────────────
+    let prevEstados = {};
+    let inicializado = false;
+
+    function mostrarToast(mensaje, tipo = 'ok') {
+        const t = document.createElement('div');
+        t.className = `toast toast-${tipo}`;
+        t.innerHTML = mensaje + '<br><small style="opacity:0.8;font-weight:normal">Toca para cerrar</small>';
+        document.body.appendChild(t);
+        t.onclick = () => cerrarToast(t);
+        setTimeout(() => cerrarToast(t), 7000);
+    }
+
+    function cerrarToast(t) {
+        t.style.animation = 'toastOut 0.4s ease forwards';
+        setTimeout(() => t.remove(), 400);
+    }
+
+    // ── MIS PEDIDOS ──────────────────────────────────────────
+    async function cargarMisPedidos() {
+        try {
+            const res = await fetch(`${API}/api/pedidos/cliente/${usuarioGuardado.id}`);
+            const pedidos = await res.json();
+
+            const section = document.getElementById('mis-pedidos-section');
+            if (!pedidos.length) { section.style.display = 'none'; return; }
+
+            section.style.display = 'block';
+
+            // ── Notificaciones compactas ──────────────────────
+            const accionables = pedidos.filter(p => p.estado === 'confirmado' || p.estado === 'cancelado');
+            const notifSection = document.getElementById('notif-section');
+            const listaNotif = document.getElementById('lista-notif');
+            if (accionables.length) {
+                notifSection.style.display = 'block';
+                listaNotif.innerHTML = accionables.map(p => {
+                    if (p.estado === 'confirmado') {
+                        return `<div class="notif-strip notif-strip-ok">
+                            <span>✅ <b>Pedido #${p.id_pedido}</b> confirmado por el proveedor — $${Number(p.total).toFixed(2)} MXN. Procede al pago.</span>
+                            <button class="notif-pagar" onclick="scrollAPedido(${p.id_pedido})">Pagar ahora ↓</button>
+                        </div>`;
+                    } else {
+                        return `<div class="notif-strip notif-strip-err">
+                            <span>✖ <b>Pedido #${p.id_pedido}</b> rechazado${p.razon_rechazo ? ': <em>' + p.razon_rechazo + '</em>' : ''}.</span>
+                        </div>`;
+                    }
+                }).join('');
+            } else {
+                notifSection.style.display = 'none';
+            }
+
+            pedidos.forEach(p => {
+                const prev = prevEstados[p.id_pedido];
+                if (inicializado && prev !== p.estado) {
+                    if (p.estado === 'confirmado') {
+                        mostrarToast(`✅ ¡Tu pedido #${p.id_pedido} fue <b>confirmado</b>!<br>Ya puedes proceder con el pago.`, 'ok');
+                    } else if (p.estado === 'cancelado') {
+                        mostrarToast(`✖ Tu pedido #${p.id_pedido} fue <b>rechazado</b>.<br>Revisa el motivo en Mis Pedidos.`, 'err');
+                    }
+                }
+                prevEstados[p.id_pedido] = p.estado;
+            });
+            inicializado = true;
+
+            document.getElementById('lista-mis-pedidos').innerHTML = pedidos.map(p => {
+                let chip = '', extra = '';
+                if (p.estado === 'pendiente') {
+                    chip = `<span class="chip chip-espera">⏳ Esperando confirmación del proveedor</span>`;
+                } else if (p.estado === 'confirmado') {
+                    chip = `<span class="chip chip-confirmado">✅ Confirmado — realiza tu pago</span>`;
+                    extra = formPago(p.id_pedido, p.total);
+                } else if (p.estado === 'cancelado') {
+                    const razon = p.razon_rechazo ? `<div class="razon-motivo">📋 Motivo: "${p.razon_rechazo}"</div>` : '';
+                    chip = `<span class="chip chip-cancelado">✖ Rechazado</span>${razon}`;
+                } else if (p.estado === 'en_proceso') {
+                    chip = `<span class="chip chip-proceso">🚚 Pago recibido — en proceso</span>`;
+                }
+                return `
+                    <div class="pedido-row" id="pedido-row-${p.id_pedido}">
+                        <div class="pedido-row-header">
+                            <strong>Pedido #${p.id_pedido}</strong>
+                            <span style="color:var(--sage-dark);font-weight:bold">$${Number(p.total).toFixed(2)} MXN</span>
+                        </div>
+                        <div style="font-size:11px;color:#aaa;margin-bottom:4px">${new Date(p.fecha).toLocaleDateString('es-MX')}</div>
+                        <div>${chip}${extra}</div>
+                    </div>`;
+            }).join('');
+        } catch (err) {
+            console.error('Error cargando mis pedidos:', err);
+        }
+    }
+
+    function formPago(id_pedido, total) {
+        return `
+            <div class="pago-box">
+                <p>Selecciona tu método de pago:</p>
+                <select class="pago-select" id="metodo-${id_pedido}" onchange="mostrarDetallePago(${id_pedido})">
+                    <option value="">— Selecciona —</option>
+                    <option value="efectivo">💵 Efectivo al recibir</option>
+                    <option value="transferencia">🏦 Transferencia bancaria (SPEI)</option>
+                    <option value="tarjeta">💳 Tarjeta de crédito / débito</option>
+                </select>
+                <div id="detalle-pago-${id_pedido}"></div>
+                <button class="btn-order" id="btn-pagar-${id_pedido}" onclick="realizarPago(${id_pedido})" style="margin-top:4px">
+                    💳 Confirmar Pago — $${Number(total).toFixed(2)} MXN
+                </button>
+            </div>`;
+    }
+
+    function mostrarDetallePago(id_pedido) {
+        const metodo = document.getElementById(`metodo-${id_pedido}`).value;
+        const div = document.getElementById(`detalle-pago-${id_pedido}`);
+        if (metodo === 'efectivo') {
+            div.innerHTML = `<div class="pago-info-box">💵 Pagarás en efectivo cuando recibas tu pedido. Ten el monto exacto listo.</div>`;
+        } else if (metodo === 'transferencia') {
+            div.innerHTML = `
+                <div class="pago-info-box">
+                    <b>Banco:</b> Raíz Edomex<br>
+                    <b>Titular:</b> Comercio Local Edomex<br>
+                    <b>Cuenta:</b> 0123 4567 8901<br>
+                    <b>CLABE:</b> 012 180 00123456789 0<br>
+                    <small>Envía el comprobante por WhatsApp al proveedor.</small>
+                </div>`;
+        } else if (metodo === 'tarjeta') {
+            div.innerHTML = `
+                <input class="pago-input" type="text" id="num-${id_pedido}" placeholder="Número de tarjeta (16 dígitos)" maxlength="19" oninput="fmtCard(this)">
+                <div class="pago-row-2">
+                    <input class="pago-input" type="text" id="exp-${id_pedido}" placeholder="MM/AA" maxlength="5" oninput="fmtExpiry(this)" style="flex:1">
+                    <input class="pago-input" type="text" id="cvv-${id_pedido}" placeholder="CVV" maxlength="4" style="flex:1">
+                </div>`;
+        } else {
+            div.innerHTML = '';
+        }
+    }
+
+    function fmtCard(input) {
+        let v = input.value.replace(/\D/g, '').substring(0, 16);
+        input.value = v.replace(/(.{4})/g, '$1 ').trim();
+    }
+
+    function fmtExpiry(input) {
+        let v = input.value.replace(/\D/g, '').substring(0, 4);
+        if (v.length >= 2) v = v.substring(0, 2) + '/' + v.substring(2);
+        input.value = v;
+    }
+
+    function scrollAPedido(id_pedido) {
+        document.getElementById('mis-pedidos-section').style.display = 'block';
+        const el = document.getElementById(`pedido-row-${id_pedido}`) || document.getElementById('mis-pedidos-section');
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function realizarPago(id_pedido) {
+        const metodo = document.getElementById(`metodo-${id_pedido}`).value;
+        if (!metodo) { alert('Selecciona un método de pago.'); return; }
+        if (metodo === 'tarjeta') {
+            const num = (document.getElementById(`num-${id_pedido}`) || {}).value || '';
+            const exp = (document.getElementById(`exp-${id_pedido}`) || {}).value || '';
+            const cvv = (document.getElementById(`cvv-${id_pedido}`) || {}).value || '';
+            if (num.replace(/\s/g, '').length < 16) { alert('Ingresa un número de tarjeta válido.'); return; }
+            if (exp.length < 5) { alert('Ingresa la fecha de vencimiento.'); return; }
+            if (cvv.length < 3) { alert('Ingresa el CVV.'); return; }
+        }
+        const btn = document.getElementById(`btn-pagar-${id_pedido}`);
+        btn.disabled = true;
+        btn.textContent = 'Procesando...';
+        try {
+            const res = await fetch(`${API}/api/pedidos/${id_pedido}/pagar`, { method: 'PUT' });
+            if (res.ok) {
+                mostrarToast(`✅ Pago del pedido #${id_pedido} registrado.<br>Tu pedido está en proceso.`, 'ok');
+                await cargarMisPedidos();
+            } else {
+                alert('Error al procesar el pago.');
+                btn.disabled = false;
+                btn.textContent = '💳 Confirmar Pago';
+            }
+        } catch {
+            alert('Error de conexión.');
+            btn.disabled = false;
+        }
+    }
+</script>
+</body>
+</html>

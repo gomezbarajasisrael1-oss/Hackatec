@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Raíz Edomex | Panel Proveedor</title>
+    <style>
+        :root { --sage: #4A7C59; --sage-dark: #2D5C3E; --cream: #FDFCF8; }
+        * { box-sizing: border-box; }
+        body { display: flex; margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--cream); }
+
+        nav { width: 240px; background: white; height: 100vh; border-right: 1px solid #ddd; padding: 20px; position: fixed; display: flex; flex-direction: column; gap: 5px; }
+        nav h2 { margin: 0 0 20px 0; color: var(--sage-dark); font-size: 18px; }
+        .nav-item { background: #5da661; color:white; padding: 17px 15px; cursor: pointer; font-weight: 600; border-radius: 8px; display: flex; align-items: center; gap: 10px; transition: background 0.2s; position: relative; }
+        .nav-item:hover { background: #f0f7f2; }
+        .nav-logout { margin-top: auto; color: #f6f6f6; font-weight: normal; font-size: 14px; }
+        .nav-logout:hover { background: #fff0f0; color: #c62828; }
+
+        .badge { background: #e53935; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 11px; font-weight: bold; display: none; align-items: center; justify-content: center; position: absolute; right: 12px; }
+        .badge.visible { display: flex; }
+
+        main { margin-left: 240px; padding: 30px; width: 100%; }
+
+        .card { background: white; padding: 25px; border-radius: 12px; border: 1px solid #eee; margin-bottom: 20px; }
+        .card h1, .card h2 { margin-top: 0; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; }
+        th { background: #f9f9f9; font-weight: 600; color: var(--sage-dark); }
+        input[type=text], input[type=number], select { padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; margin: 4px; }
+
+        .btn { padding: 8px 14px; border-radius: 6px; cursor: pointer; border: none; font-size: 13px; font-weight: 600; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn-add    { background: var(--sage); color: white; }
+        .btn-del    { background: #c62828; color: white; }
+        .btn-ok     { background: #2e7d32; color: white; }
+        .btn-cancel { background: #757575; color: white; }
+
+        .pedido-card { border-left: 5px solid #d97706; background: #fffbeb; padding: 18px; margin-bottom: 15px; border-radius: 8px; }
+        .pedido-card.confirmado { border-left-color: var(--sage); background: #f0f7f2; }
+        .pedido-card.rechazado  { border-left-color: #c62828; background: #fff5f5; opacity: 0.7; }
+        .pedido-header  { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .pedido-titulo  { font-weight: bold; font-size: 15px; }
+        .pedido-fecha   { font-size: 12px; color: #888; }
+        .pedido-detalle { font-size: 13px; color: #444; margin: 8px 0; }
+        .pedido-total   { font-weight: bold; color: var(--sage-dark); }
+        .pedido-acciones { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+        .estado-chip { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+        .chip-pendiente { background: #fff3cd; color: #856404; }
+        .chip-proceso   { background: #d4edda; color: #155724; }
+        .chip-cancelado { background: #f8d7da; color: #721c24; }
+
+        .razon-form textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; resize: none; height: 75px; font-family: inherit; margin-top: 8px; }
+        .razon-form-btns { display: flex; gap: 8px; margin-top: 8px; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <h2>LU’UM POCHTLAN | MÉXICO</h2>
+    <div class="nav-item" onclick="render('inventario')">📦 Inventario</div>
+    <div class="nav-item" onclick="render('pedidos')">
+        🚚 Pedidos
+        <span class="badge" id="badge-pedidos">0</span>
+    </div>
+    <div class="nav-item" onclick="render('pagos')">💰 Ganancias</div>
+    <div class="nav-item nav-logout" onclick="cerrarSesion()">🚪 Cerrar sesión</div>
+</nav>
+
+<main id="app">
+    <div class="card">
+        <h1>Bienvenido, Proveedor</h1>
+        <p>Gestiona tu inventario y recibe pedidos de tus clientes.</p>
+    </div>
+</main>
+
+<script>
+    const API = 'http://localhost:3000';
+    let intervaloNotif = null;
+
+    // Verificar sesión al cargar
+    const usuarioGuardado = JSON.parse(localStorage.getItem('usuario') || '{}');
+    if (!usuarioGuardado.id || usuarioGuardado.rol !== 'comerciante') {
+        document.body.innerHTML = `
+            <div style="display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:sans-serif;flex-direction:column;gap:16px">
+                <p style="font-size:16px;color:#555">Acceso restringido. Inicia sesión como comerciante.</p>
+                <a href="login.html" style="background:#4A7C59;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold">Ir al Login</a>
+            </div>`;
+    } else {
+        render('pedidos');
+    }
+
+    function cerrarSesion() {
+        localStorage.removeItem('usuario');
+        window.location.href = 'login.html';
+    }
+
+    async function render(seccion) {
+        clearInterval(intervaloNotif);
+        const app = document.getElementById('app');
+
+        if (seccion === 'inventario') {
+            app.innerHTML = `
+                <h1>Gestión de Inventario</h1>
+                <div class="card">
+                    <input type="text" id="n" placeholder="Nombre del producto">
+                    <select id="c"><option>Comida</option><option>Limpieza</option><option>Medicina</option></select>
+                    <input type="number" id="p" placeholder="Precio" min="0">
+                    <input type="number" id="s" placeholder="Stock" min="0">
+                    <button class="btn btn-add" onclick="agregar()">+ Agregar Producto</button>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
+                        <tbody id="tabla-productos"><tr><td colspan="5">Cargando...</td></tr></tbody>
+                    </table>
+                </div>`;
+            await cargarProductos();
+
+        } else if (seccion === 'pedidos') {
+            app.innerHTML = `
+                <h1>📬 Pedidos Entrantes</h1>
+                <div class="card" id="contenedor-pedidos">
+                    <p style="color:#888;font-style:italic">Cargando pedidos...</p>
+                </div>`;
+            await cargarPedidos();
+            intervaloNotif = setInterval(cargarPedidos, 10000);
+
+        } else if (seccion === 'pagos') {
+            app.innerHTML = `
+                <h1>💰 Historial de Ganancias</h1>
+                <div class="card" id="card-ganancias"><p>Cargando...</p></div>`;
+            cargarGanancias();
+        }
+    }
+
+    // ─── INVENTARIO ───────────────────────────────────────────
+    async function cargarProductos() {
+        try {
+            const res = await fetch(`${API}/api/productos`);
+            const productos = await res.json();
+            const tbody = document.getElementById('tabla-productos');
+            if (!productos.length) { tbody.innerHTML = '<tr><td colspan="5">No hay productos registrados.</td></tr>'; return; }
+            tbody.innerHTML = productos.map(p => `
+                <tr>
+                    <td>${p.nombre}</td>
+                    <td>${p.categoria || '-'}</td>
+                    <td>$${Number(p.precio).toFixed(2)}</td>
+                    <td>${p.stock}</td>
+                    <td><button class="btn btn-del" onclick="borrar(${p.id_producto})">Eliminar</button></td>
+                </tr>`).join('');
+        } catch {
+            document.getElementById('tabla-productos').innerHTML =
+                '<tr><td colspan="5" style="color:red">Error al conectar con el servidor.</td></tr>';
+        }
+    }
+
+    async function agregar() {
+        const nombre = document.getElementById('n').value.trim();
+        const categoria = document.getElementById('c').value;
+        const precio = document.getElementById('p').value;
+        const stock = document.getElementById('s').value;
+        if (!nombre || !precio || !stock) return alert('Completa todos los campos');
+        const res = await fetch(`${API}/api/productos`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, categoria, precio, stock })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            document.getElementById('n').value = '';
+            document.getElementById('p').value = '';
+            document.getElementById('s').value = '';
+            await cargarProductos();
+        } else {
+            alert('Error: ' + (data.error || data.mensaje));
+        }
+    }
+
+    async function borrar(id) {
+        if (!confirm('¿Eliminar este producto?')) return;
+        try {
+            const res = await fetch(`${API}/api/productos/${id}`, { method: 'DELETE' });
+            if (res.ok) { await cargarProductos(); }
+            else { const d = await res.json(); alert('No se pudo eliminar: ' + (d.error || 'Error')); }
+        } catch { alert('Error de conexión.'); }
+    }
+
+    // ─── PEDIDOS ─────────────────────────────────────────────
+    async function cargarPedidos() {
+        try {
+            const res = await fetch(`${API}/api/pedidos/pendientes`);
+            const pedidos = await res.json();
+
+            const badge = document.getElementById('badge-pedidos');
+            if (pedidos.length > 0) { badge.textContent = pedidos.length; badge.classList.add('visible'); }
+            else { badge.classList.remove('visible'); }
+
+            const contenedor = document.getElementById('contenedor-pedidos');
+            if (!contenedor) return;
+
+            if (!pedidos.length) {
+                contenedor.innerHTML = '<p style="color:#888;font-style:italic;font-size:14px">✅ No hay pedidos pendientes en este momento.</p>';
+                return;
+            }
+
+            const pedidosConDetalle = await Promise.all(pedidos.map(async p => {
+                const dr = await fetch(`${API}/api/pedidos/${p.id_pedido}/detalle`);
+                return { ...p, detalle: await dr.json() };
+            }));
+
+            contenedor.innerHTML = pedidosConDetalle.map(p => `
+                <div class="pedido-card" id="pedido-${p.id_pedido}">
+                    <div class="pedido-header">
+                        <div>
+                            <div class="pedido-titulo">Pedido #${p.id_pedido} — ${p.cliente}</div>
+                            <div class="pedido-fecha">${new Date(p.fecha).toLocaleString('es-MX')}</div>
+                        </div>
+                        <span class="estado-chip chip-pendiente">⏳ Pendiente</span>
+                    </div>
+                    <div class="pedido-detalle">
+                        ${p.detalle.map(d => `• ${d.producto} x${d.cantidad} — $${Number(d.subtotal).toFixed(2)}`).join('<br>')}
+                    </div>
+                    <div class="pedido-total">Total: $${Number(p.total).toFixed(2)} MXN</div>
+                    <div class="pedido-acciones" id="acciones-${p.id_pedido}">
+                        <button class="btn btn-ok"  onclick="confirmarPedido(${p.id_pedido})">✔ Confirmar pedido</button>
+                        <button class="btn btn-del" onclick="mostrarFormRechazo(${p.id_pedido})">✖ Rechazar</button>
+                    </div>
+                </div>`).join('');
+        } catch (err) {
+            const contenedor = document.getElementById('contenedor-pedidos');
+            if (contenedor) contenedor.innerHTML = `<p style="color:red">Error al cargar pedidos: ${err.message}</p>`;
+        }
+    }
+
+    async function confirmarPedido(id) {
+        try {
+            const res = await fetch(`${API}/api/pedidos/${id}/aceptar`, { method: 'PUT' });
+            if (res.ok) {
+                const card = document.getElementById(`pedido-${id}`);
+                card.classList.add('confirmado');
+                card.querySelector('.estado-chip').className = 'estado-chip chip-proceso';
+                card.querySelector('.estado-chip').textContent = '✅ Confirmado';
+                document.getElementById(`acciones-${id}`).innerHTML =
+                    '<em style="color:#2e7d32;font-size:13px">Pedido confirmado — el cliente procederá al pago.</em>';
+                setTimeout(cargarPedidos, 1500);
+            } else {
+                const data = await res.json();
+                alert('Error al confirmar el pedido: ' + (data.error || data.mensaje || 'Error desconocido'));
+            }
+        } catch (err) {
+            alert('Error de conexión al confirmar: ' + err.message);
+        }
+    }
+
+    function mostrarFormRechazo(id) {
+        document.getElementById(`acciones-${id}`).innerHTML = `
+            <div class="razon-form" style="width:100%">
+                <textarea id="razon-${id}" placeholder="Escribe el motivo del rechazo..."></textarea>
+                <div class="razon-form-btns">
+                    <button class="btn btn-del" onclick="enviarRechazo(${id})">✖ Confirmar rechazo</button>
+                    <button class="btn btn-cancel" onclick="cargarPedidos()">Cancelar</button>
+                </div>
+            </div>`;
+    }
+
+    async function enviarRechazo(id) {
+        const razon = document.getElementById(`razon-${id}`).value.trim();
+        if (!razon) { alert('Escribe el motivo del rechazo para que el cliente sepa qué pasó.'); return; }
+        try {
+            const res = await fetch(`${API}/api/pedidos/${id}/rechazar`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ razon })
+            });
+            if (res.ok) {
+                const card = document.getElementById(`pedido-${id}`);
+                card.classList.add('rechazado');
+                card.querySelector('.estado-chip').className = 'estado-chip chip-cancelado';
+                card.querySelector('.estado-chip').textContent = '✖ Rechazado';
+                document.getElementById(`acciones-${id}`).innerHTML =
+                    `<em style="color:#888;font-size:13px">Rechazado: "${razon}"</em>`;
+                setTimeout(cargarPedidos, 1500);
+            } else {
+                const data = await res.json();
+                alert('Error al rechazar el pedido: ' + (data.error || data.mensaje || 'Error desconocido'));
+            }
+        } catch (err) {
+            alert('Error de conexión al rechazar: ' + err.message);
+        }
+    }
+
+    // ─── GANANCIAS ────────────────────────────────────────────
+    async function cargarGanancias() {
+        try {
+            const res = await fetch(`${API}/api/ganancias`);
+            const data = await res.json();
+            const card = document.getElementById('card-ganancias');
+            const filas = !data.pedidos.length
+                ? '<p style="color:#888;font-style:italic;margin-top:16px">No hay pedidos pagados aún.</p>'
+                : data.pedidos.map(p => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #eee">
+                        <div>
+                            <strong>Pedido #${p.id_pedido}</strong> — ${p.cliente}<br>
+                            <small style="color:#888">${new Date(p.fecha).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</small>
+                        </div>
+                        <strong style="color:#2D5C3E;font-size:16px">+$${Number(p.total).toFixed(2)}</strong>
+                    </div>`).join('');
+            card.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                    <div>
+                        <div style="font-size:13px;color:#888;margin-bottom:4px">GANANCIAS TOTALES</div>
+                        <div style="font-size:2rem;font-weight:bold;color:#2D5C3E">$${Number(data.total).toFixed(2)} <span style="font-size:14px;font-weight:normal">MXN</span></div>
+                    </div>
+                    <div style="background:#EAF3EC;padding:10px 20px;border-radius:8px;font-size:13px;color:#2D5C3E;font-weight:600">
+                        ${data.pedidos.length} pedido${data.pedidos.length !== 1 ? 's' : ''} pagado${data.pedidos.length !== 1 ? 's' : ''}
+                    </div>
+                </div>
+                <hr style="border:none;border-top:1px solid #eee;margin-bottom:8px">
+                <h3 style="margin:0 0 4px">Detalle por pedido</h3>${filas}`;
+        } catch {
+            document.getElementById('card-ganancias').innerHTML = '<p style="color:red">Error al cargar ganancias.</p>';
+        }
+    }
+
+    async function verificarBadge() {
+        try {
+            const res = await fetch(`${API}/api/pedidos/pendientes`);
+            const pedidos = await res.json();
+            const badge = document.getElementById('badge-pedidos');
+            if (pedidos.length > 0) { badge.textContent = pedidos.length; badge.classList.add('visible'); }
+            else { badge.classList.remove('visible'); }
+        } catch {}
+    }
+
+    verificarBadge();
+    setInterval(verificarBadge, 15000);
+</script>
+
+</body>
+</html>
